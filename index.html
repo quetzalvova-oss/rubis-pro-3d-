@@ -507,13 +507,15 @@ const LESSONS = [
   { title:'Финальная визуализация интерьера', done:false, duration:'45:00' },
 ];
 
-const STUDENTS = [
-  { id:1, name:'Анна Иванова', email:'anna@mail.ru', courses:3, progress:65, joined:'12 янв 2025' },
-  { id:2, name:'Борис Козлов', email:'boris@mail.ru', courses:2, progress:88, joined:'3 фев 2025' },
-  { id:3, name:'Виктория Лебедева', email:'vika@mail.ru', courses:1, progress:42, joined:'20 фев 2025' },
-  { id:4, name:'Геннадий Орлов', email:'gen@mail.ru', courses:4, progress:91, joined:'1 мар 2025' },
-  { id:5, name:'Дарья Соколова', email:'dasha@mail.ru', courses:2, progress:15, joined:'15 мар 2025' },
-];
+let STUDENTS = [];
+let DELETED_STUDENTS_LOCAL = [];
+
+async function loadStudents() {
+  const { data, error } = await sb.from('students').select('*').order('id');
+  if (error) { console.error('Ошибка загрузки учеников:', error); return; }
+  STUDENTS = data.filter(s => !s.deleted);
+  DELETED_STUDENTS_LOCAL = data.filter(s => s.deleted).map(s => ({...s, deletedAt: s.deleted_at}));
+}
 
 // ─── AUTH ─────────────────────────────────────────────────────────────
 function setRole(role, btn) {
@@ -856,18 +858,22 @@ function openAddStudentModal() {
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
-function saveNewStudent() {
+async function saveNewStudent() {
   const name = document.getElementById('new-student-name').value.trim();
   const email = document.getElementById('new-student-email').value.trim();
   if (!name || !email) { showToast('❌ Заполни имя и email'); return; }
   const today = new Date();
   const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
   const joined = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
-  const newStudent = {
-    id: STUDENTS.length + 1,
-    name, email, courses: 1, progress: 0, joined
-  };
-  STUDENTS.push(newStudent);
+  const btn = document.querySelector('#modal-box .btn-primary');
+  btn.textContent = 'Сохраняем...'; btn.disabled = true;
+  const { data, error } = await sb.from('students').insert([{ name, email, courses:1, progress:0, joined }]).select().single();
+  if (error) {
+    showToast('❌ Ошибка: ' + (error.message.includes('unique') ? 'Email уже существует' : error.message));
+    btn.textContent = 'Добавить ученика'; btn.disabled = false;
+    return;
+  }
+  STUDENTS.push(data);
   closeModal();
   showToast(`✅ Ученик ${name} добавлен`);
   navigate('admin-users');
@@ -893,33 +899,34 @@ function confirmDeleteStudent(id) {
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
-const DELETED_STUDENTS = [];
-
-function deleteStudent(id) {
+async function deleteStudent(id) {
   const idx = STUDENTS.findIndex(s => s.id === id);
-  if (idx !== -1) {
-    const student = STUDENTS[idx];
-    const today = new Date();
-    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-    student.deletedAt = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
-    DELETED_STUDENTS.push(student);
-    STUDENTS.splice(idx, 1);
-    closeModal();
-    showToast(`🗑 ${student.name} перемещён в удалённые`);
-    navigate('admin-users');
-  }
+  if (idx === -1) return;
+  const student = STUDENTS[idx];
+  const today = new Date();
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const deletedAt = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+  const { error } = await sb.from('students').update({ deleted: true, deleted_at: deletedAt }).eq('id', id);
+  if (error) { showToast('❌ Ошибка удаления'); return; }
+  student.deletedAt = deletedAt;
+  DELETED_STUDENTS_LOCAL.push(student);
+  STUDENTS.splice(idx, 1);
+  closeModal();
+  showToast(`🗑 ${student.name} перемещён в удалённые`);
+  navigate('admin-users');
 }
 
-function restoreStudent(id) {
-  const idx = DELETED_STUDENTS.findIndex(s => s.id === id);
-  if (idx !== -1) {
-    const student = DELETED_STUDENTS[idx];
-    delete student.deletedAt;
-    STUDENTS.push(student);
-    DELETED_STUDENTS.splice(idx, 1);
-    showToast(`✅ ${student.name} восстановлен`);
-    navigate('admin-users');
-  }
+async function restoreStudent(id) {
+  const idx = DELETED_STUDENTS_LOCAL.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  const student = DELETED_STUDENTS_LOCAL[idx];
+  const { error } = await sb.from('students').update({ deleted: false, deleted_at: null }).eq('id', id);
+  if (error) { showToast('❌ Ошибка восстановления'); return; }
+  delete student.deletedAt;
+  STUDENTS.push(student);
+  DELETED_STUDENTS_LOCAL.splice(idx, 1);
+  showToast(`✅ ${student.name} восстановлен`);
+  navigate('admin-users');
 }
 
 function studentRow(s, deleted) {
@@ -944,19 +951,21 @@ function studentRow(s, deleted) {
   </tr>`;
 }
 
-function renderAdminUsers(el) {
+async function renderAdminUsers(el) {
+  el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--text3)">Загрузка учеников...</div>';
   document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddStudentModal()">+ Добавить ученика</button>`;
-  const deletedSection = DELETED_STUDENTS.length > 0 ? `
+  await loadStudents();
+  const deletedSection = DELETED_STUDENTS_LOCAL.length > 0 ? `
     <div class="section-header" style="margin-bottom:14px;margin-top:32px">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-family:'Instrument Serif',serif;font-size:20px">Удалённые</span>
-        <span class="badge badge-orange">${DELETED_STUDENTS.length}</span>
+        <span class="badge badge-orange">${DELETED_STUDENTS_LOCAL.length}</span>
       </div>
     </div>
     <div class="table-wrap">
       <table class="admin-table">
         <thead><tr><th>Ученик</th><th>Email</th><th>Курсов</th><th>Прогресс</th><th>Дата регистрации</th><th></th></tr></thead>
-        <tbody>${DELETED_STUDENTS.map(s => studentRow(s, true)).join('')}</tbody>
+        <tbody>${DELETED_STUDENTS_LOCAL.map(s => studentRow(s, true)).join('')}</tbody>
       </table>
     </div>` : '';
   el.innerHTML = `

@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUBIS PRO 3D — Платформа обучения</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface2: #f2f0ec;
+    --border: #e8e4de;
+    --text: #1a1814;
+    --text2: #6b6560;
+    --text3: #a09a93;
+    --accent: #2d6a4f;
+    --accent-light: #e8f4ee;
+    --accent2: #e76f51;
+    --accent2-light: #fdf0ec;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ─── UTILITIES ─── */
+  .hidden { display: none !important; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .gap-4 { gap: 16px; }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; border-radius: var(--radius-sm); font-family: inherit;
+    font-size: 14px; font-weight: 500; cursor: pointer; border: none;
+    transition: all .18s ease; text-decoration: none; white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #235c42; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,106,79,.25); }
+  .btn-outline { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost { background: transparent; color: var(--text2); padding: 8px 12px; }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+  .btn-danger { background: #fee2e2; color: #dc2626; }
+  .btn-danger:hover { background: #fecaca; }
+  .btn-sm { padding: 6px 14px; font-size: 13px; }
+  .btn-lg { padding: 14px 28px; font-size: 16px; }
+
+  /* ─── BADGE ─── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 500;
+  }
+  .badge-green { background: var(--accent-light); color: var(--accent); }
+  .badge-orange { background: var(--accent2-light); color: var(--accent2); }
+  .badge-gray { background: var(--surface2); color: var(--text2); }
+
+  /* ─── AUTH PAGE ─── */
+  #page-auth {
+    min-height: 100vh; display: flex;
+  }
+  .auth-left {
+    width: 52%; background: var(--accent); position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; padding: 60px;
+  }
+  .auth-left-pattern {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,.08) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 20%, rgba(255,255,255,.06) 0%, transparent 45%);
+  }
+  .auth-left-content { position: relative; z-index: 1; color: white; max-width: 420px; }
+  .auth-logo { font-family: 'Instrument Serif', serif; font-size: 28px; margin-bottom: 56px; letter-spacing: -.3px; }
+  .auth-headline { font-family: 'Instrument Serif', serif; font-size: 42px; line-height: 1.2; margin-bottom: 20px; font-weight: 400; }
+  .auth-headline em { font-style: italic; opacity: .8; }
+  .auth-sub { opacity: .7; font-size: 15px; line-height: 1.7; }
+  .auth-stats { display: flex; gap: 40px; margin-top: 56px; }
+  .auth-stat-num { font-family: 'Instrument Serif', serif; font-size: 32px; color: white; }
+  .auth-stat-label { font-size: 12px; opacity: .6; margin-top: 2px; }
+  .auth-right {
+    flex: 1; display: flex; align-items: center; justify-content: center; padding: 60px;
+  }
+  .auth-form-wrap { width: 100%; max-width: 400px; }
+  .auth-title { font-family: 'Instrument Serif', serif; font-size: 30px; margin-bottom: 6px; }
+  .auth-desc { color: var(--text2); margin-bottom: 36px; font-size: 14px; }
+  .form-group { margin-bottom: 18px; }
+  .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 7px; color: var(--text); }
+  .form-input {
+    width: 100%; padding: 11px 14px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--surface);
+    font-family: inherit; font-size: 14px; color: var(--text);
+    transition: border-color .15s; outline: none;
+  }
+  .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,106,79,.1); }
+  .form-footer { margin-top: 8px; text-align: center; font-size: 13px; color: var(--text2); }
+  .form-footer a { color: var(--accent); cursor: pointer; text-decoration: underline; }
+  .auth-role-toggle {
+    display: flex; gap: 8px; margin-bottom: 28px;
+    padding: 4px; background: var(--surface2); border-radius: var(--radius-sm);
+  }
+  .role-btn {
+    flex: 1; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; font-family: inherit; background: transparent;
+    color: var(--text2); transition: all .15s;
+  }
+  .role-btn.active { background: white; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+
+  /* ─── APP SHELL ─── */
+  #page-app { display: flex; min-height: 100vh; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    width: 240px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0;
+    height: 100vh; z-index: 100; padding: 24px 0;
+  }
+  .sidebar-logo {
+    font-family: 'Instrument Serif', serif; font-size: 22px; padding: 0 24px 24px;
+    border-bottom: 1px solid var(--border); margin-bottom: 16px; color: var(--accent);
+  }
+  .sidebar-section { padding: 0 12px; margin-bottom: 4px; }
+  .sidebar-section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text3); padding: 0 12px; margin-bottom: 4px; margin-top: 16px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border-radius: var(--radius-sm); cursor: pointer; transition: all .15s;
+    color: var(--text2); font-size: 14px; font-weight: 400; user-select: none;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .nav-item svg { flex-shrink: 0; }
+  .sidebar-bottom { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--border); }
+  .user-card {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: var(--radius-sm); cursor: pointer;
+  }
+  .user-card:hover { background: var(--surface2); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    font-weight: 600; color: white; flex-shrink: 0;
+  }
+  .avatar-sm { width: 28px; height: 28px; font-size: 11px; }
+  .user-name { font-size: 13px; font-weight: 500; }
+  .user-role { font-size: 11px; color: var(--text3); }
+
+  /* ─── MAIN CONTENT ─── */
+  .main-content { margin-left: 240px; flex: 1; min-height: 100vh; }
+
+  /* ─── TOP BAR ─── */
+  .topbar {
+    height: 60px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title { font-family: 'Instrument Serif', serif; font-size: 20px; }
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+  /* ─── PAGE CONTENT ─── */
+  .page-inner { padding: 32px; max-width: 1100px; }
+
+  /* ─── STAT CARDS ─── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .stat-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .stat-value { font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1; margin-bottom: 6px; }
+  .stat-change { font-size: 12px; color: var(--accent); }
+
+  /* ─── COURSE CARDS ─── */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .section-title { font-family: 'Instrument Serif', serif; font-size: 22px; }
+  .courses-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 32px; }
+  .course-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; cursor: pointer; transition: all .2s; position: relative;
+  }
+  .course-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+  .course-thumb {
+    height: 130px; display: flex; align-items: center; justify-content: center;
+    font-size: 40px; position: relative;
+  }
+  .course-thumb-1 { background: linear-gradient(135deg, #e8f4ee, #c8e6d0); }
+  .course-thumb-2 { background: linear-gradient(135deg, #fdf0ec, #fad5c8); }
+  .course-thumb-3 { background: linear-gradient(135deg, #eef2ff, #c7d2fe); }
+  .course-thumb-4 { background: linear-gradient(135deg, #fefce8, #fde68a); }
+  .course-thumb-5 { background: linear-gradient(135deg, #fdf4ff, #e9d5ff); }
+  .course-body { padding: 16px; }
+  .course-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; line-height: 1.4; }
+  .course-meta { font-size: 12px; color: var(--text3); margin-bottom: 12px; }
+  .progress-bar-wrap { height: 4px; background: var(--surface2); border-radius: 2px; margin-bottom: 8px; }
+  .progress-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; }
+  .progress-label { font-size: 11px; color: var(--text3); }
+
+  /* ─── LESSON PAGE ─── */
+  .lesson-layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
+  .lesson-video {
+    background: #1a1814; border-radius: var(--radius); aspect-ratio: 16/9;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .play-btn {
+    width: 64px; height: 64px; background: rgba(255,255,255,.15); backdrop-filter: blur(8px);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .2s; border: 1.5px solid rgba(255,255,255,.2);
+  }
+  .play-btn:hover { background: rgba(255,255,255,.25); transform: scale(1.05); }
+  .video-duration { position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,.6); color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+  .lesson-title { font-family: 'Instrument Serif', serif; font-size: 26px; margin-bottom: 8px; }
+  .lesson-meta { color: var(--text2); font-size: 13px; margin-bottom: 20px; display: flex; gap: 16px; }
+  .lesson-body p { color: var(--text2); line-height: 1.8; margin-bottom: 14px; font-size: 14px; }
+  .lesson-sidebar-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; position: sticky; top: 80px;
+  }
+  .lesson-list { }
+  .lesson-list-title { font-size: 13px; font-weight: 600; padding: 16px 18px 12px; border-bottom: 1px solid var(--border); }
+  .lesson-list-item {
+    display: flex; align-items: center; gap: 10px; padding: 11px 18px;
+    font-size: 13px; cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--border);
+  }
+  .lesson-list-item:last-child { border-bottom: none; }
+  .lesson-list-item:hover { background: var(--surface2); }
+  .lesson-list-item.active { background: var(--accent-light); color: var(--accent); }
+  .lesson-check {
+    width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .lesson-check.done { background: var(--accent); border-color: var(--accent); color: white; }
+  .lesson-check.current { border-color: var(--accent); }
+  .lesson-num { font-size: 11px; color: var(--text3); margin-left: auto; }
+
+  /* ─── ADMIN ─── */
+  .admin-table { width: 100%; border-collapse: collapse; }
+  .admin-table th {
+    text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text3); padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-table td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: var(--surface2); }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(4px);
+    z-index: 200; display: flex; align-items: center; justify-content: center;
+  }
+  .modal {
+    background: var(--surface); border-radius: var(--radius); padding: 32px;
+    width: 500px; max-width: 90vw; box-shadow: var(--shadow-lg);
+    animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(.95) translateY(8px); } to { opacity: 1; transform: none; } }
+  .modal-title { font-family: 'Instrument Serif', serif; font-size: 22px; margin-bottom: 20px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* ─── TABS ─── */
+  .tabs { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 24px; width: fit-content; }
+  .tab {
+    padding: 7px 18px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; font-family: inherit; background: transparent;
+    color: var(--text2); transition: all .15s;
+  }
+  .tab.active { background: white; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+
+  /* ─── PROGRESS PAGE ─── */
+  .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .progress-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px;
+  }
+  .progress-course-name { font-weight: 600; margin-bottom: 4px; font-size: 15px; }
+  .progress-course-meta { font-size: 12px; color: var(--text3); margin-bottom: 14px; }
+  .big-progress-bar { height: 8px; background: var(--surface2); border-radius: 4px; margin-bottom: 10px; }
+  .big-progress-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width .5s; }
+  .progress-stats { display: flex; gap: 20px; }
+  .progress-stat-item { font-size: 12px; color: var(--text2); }
+  .progress-stat-item strong { color: var(--text); display: block; font-size: 15px; }
+
+  /* ─── ANIMATIONS ─── */
+  .page-fade { animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state { text-align: center; padding: 64px 32px; color: var(--text2); }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-family: 'Instrument Serif', serif; font-size: 20px; color: var(--text); margin-bottom: 8px; }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--text); color: white;
+    padding: 12px 20px; border-radius: var(--radius-sm); font-size: 14px;
+    z-index: 999; box-shadow: var(--shadow-lg); animation: toastIn .2s ease;
+    display: flex; align-items: center; gap: 8px;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 900px) {
+    .auth-left { display: none; }
+    .courses-grid { grid-template-columns: 1fr 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .lesson-layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     AUTH PAGE
+═══════════════════════════════════════════ -->
+<div id="page-auth">
+  <div class="auth-left">
+    <div class="auth-left-pattern"></div>
+    <div class="auth-left-content">
+      <div class="auth-logo">RUBIS PRO 3D</div>
+      <h1 class="auth-headline">Создавай.<br><em>Визуализируй.</em><br>Зарабатывай.</h1>
+      <p class="auth-sub">Профессиональные курсы по 3D-визуализации, архитектурному рендерингу и дизайну интерьеров.</p>
+      <div class="auth-stats">
+        <div>
+          <div class="auth-stat-num">12к+</div>
+          <div class="auth-stat-label">Учеников</div>
+        </div>
+        <div>
+          <div class="auth-stat-num">84</div>
+          <div class="auth-stat-label">Курсов</div>
+        </div>
+        <div>
+          <div class="auth-stat-num">97%</div>
+          <div class="auth-stat-label">Довольных</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="auth-right">
+    <div class="auth-form-wrap">
+      <div id="auth-login-view">
+        <h2 class="auth-title">Добро пожаловать</h2>
+        <p class="auth-desc">Войдите, чтобы продолжить обучение</p>
+        <div class="auth-role-toggle">
+          <button class="role-btn active" onclick="setRole('student',this)">Ученик</button>
+          <button class="role-btn" onclick="setRole('admin',this)">Администратор</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Электронная почта</label>
+          <input class="form-input" type="email" id="login-email" placeholder="you@example.com" value="student@rubis.pro">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <input class="form-input" type="password" id="login-pass" placeholder="••••••••" value="password">
+        </div>
+        <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px" onclick="doLogin()">Войти</button>
+        <p class="form-footer" style="margin-top:20px">Нет аккаунта? <a onclick="toggleAuthView('register')">Зарегистрироваться</a></p>
+      </div>
+      <div id="auth-register-view" class="hidden">
+        <h2 class="auth-title">Создать аккаунт</h2>
+        <p class="auth-desc">Начните обучение уже сегодня</p>
+        <div class="form-group">
+          <label class="form-label">Имя</label>
+          <input class="form-input" type="text" placeholder="Иван Петров">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Электронная почта</label>
+          <input class="form-input" type="email" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <input class="form-input" type="password" placeholder="Минимум 8 символов">
+        </div>
+        <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px" onclick="doRegister()">Создать аккаунт</button>
+        <p class="form-footer" style="margin-top:20px">Уже есть аккаунт? <a onclick="toggleAuthView('login')">Войти</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP (after login)
+═══════════════════════════════════════════ -->
+<div id="page-app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">RUBIS PRO 3D</div>
+    <div id="nav-student" class="hidden">
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Главное</div>
+        <a class="nav-item active" onclick="navigate('dashboard',this)">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Дашборд
+        </a>
+        <a class="nav-item" onclick="navigate('my-courses',this)">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Мои курсы
+        </a>
+        <a class="nav-item" onclick="navigate('progress',this)">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Прогресс
+        </a>
+      </div>
+    </div>
+    <div id="nav-admin" class="hidden">
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Управление</div>
+        <a class="nav-item active" onclick="navigate('admin-dashboard',this)">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Дашборд
+        </a>
+        <a class="nav-item" onclick="navigate('admin-courses',this)">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Курсы
+        </a>
+        <a class="nav-item" onclick="navigate('admin-users',this)">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Ученики
+        </a>
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-card" id="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">И</div>
+        <div>
+          <div class="user-name" id="sidebar-name">Иван</div>
+          <div class="user-role" id="sidebar-role-label">Ученик</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;justify-content:flex-start;gap:8px" onclick="doLogout()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Дашборд</div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div id="page-content" style="padding:0"></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="modal-box">
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast hidden" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────
+let currentRole = 'student';
+let currentUser = null;
+let currentPage = '';
+let activeCourse = null;
+let activeLesson = 0;
+
+const USERS = [
+  { id:1, name:'Анна Иванова', email:'student@rubis.pro', role:'student', avatar:'А', courses:[0,1,2], progress:{0:65,1:30,2:0} },
+  { id:2, name:'Алексей Смирнов', email:'admin@rubis.pro', role:'admin', avatar:'А' },
+];
+
+const COURSES = [
+  { id:0, title:'3D-визуализатор', emoji:'🧊', thumb:'course-thumb-1', lessons:8, category:'3D-дизайн', students:342, published:true },
+  { id:1, title:'Архитектурный рендеринг', emoji:'🏛️', thumb:'course-thumb-2', lessons:12, category:'3D-дизайн', students:218, published:true },
+  { id:2, title:'V-Ray. Продвинутый уровень', emoji:'⚡', thumb:'course-thumb-3', lessons:6, category:'Рендеринг', students:415, published:true },
+  { id:3, title:'Cinema 4D + Octane', emoji:'🎬', thumb:'course-thumb-4', lessons:10, category:'3D-анимация', students:187, published:false },
+  { id:4, title:'Unreal Engine для архитекторов', emoji:'🎮', thumb:'course-thumb-5', lessons:20, category:'Геймдев', students:521, published:true },
+];
+
+const LESSONS = [
+  { title:'Введение в 3D-визуализацию', done:true, duration:'12:30' },
+  { title:'Базовое моделирование в 3ds Max', done:true, duration:'18:45' },
+  { title:'Материалы и текстуры', done:true, duration:'22:10' },
+  { title:'Освещение сцены', done:false, duration:'25:00', current:true },
+  { title:'Настройка камеры и ракурсов', done:false, duration:'19:55' },
+  { title:'Corona Renderer: основы', done:false, duration:'28:00' },
+  { title:'Постобработка в Photoshop', done:false, duration:'16:20' },
+  { title:'Финальная визуализация интерьера', done:false, duration:'45:00' },
+];
+
+const STUDENTS = [
+  { id:1, name:'Анна Иванова', email:'anna@mail.ru', courses:3, progress:65, joined:'12 янв 2025' },
+  { id:2, name:'Борис Козлов', email:'boris@mail.ru', courses:2, progress:88, joined:'3 фев 2025' },
+  { id:3, name:'Виктория Лебедева', email:'vika@mail.ru', courses:1, progress:42, joined:'20 фев 2025' },
+  { id:4, name:'Геннадий Орлов', email:'gen@mail.ru', courses:4, progress:91, joined:'1 мар 2025' },
+  { id:5, name:'Дарья Соколова', email:'dasha@mail.ru', courses:2, progress:15, joined:'15 мар 2025' },
+];
+
+// ─── AUTH ─────────────────────────────────────────────────────────────
+function setRole(role, btn) {
+  currentRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const emailInput = document.getElementById('login-email');
+  emailInput.value = role === 'admin' ? 'admin@rubis.pro' : 'student@rubis.pro';
+}
+
+function toggleAuthView(view) {
+  document.getElementById('auth-login-view').classList.toggle('hidden', view !== 'login');
+  document.getElementById('auth-register-view').classList.toggle('hidden', view !== 'register');
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value;
+  const user = USERS.find(u => u.email === email);
+  if (!user) { showToast('❌ Пользователь не найден'); return; }
+  currentUser = user;
+  launchApp(user);
+}
+
+function doRegister() {
+  currentUser = USERS[0];
+  launchApp(currentUser);
+  showToast('✅ Аккаунт создан');
+}
+
+function doLogout() {
+  document.getElementById('page-app').classList.add('hidden');
+  document.getElementById('page-auth').classList.remove('hidden');
+  currentUser = null;
+}
+
+function launchApp(user) {
+  document.getElementById('page-auth').classList.add('hidden');
+  document.getElementById('page-app').classList.remove('hidden');
+  document.getElementById('sidebar-avatar').textContent = user.avatar;
+  document.getElementById('sidebar-name').textContent = user.name.split(' ')[0];
+  document.getElementById('sidebar-role-label').textContent = user.role === 'admin' ? 'Администратор' : 'Ученик';
+  document.getElementById('nav-student').classList.toggle('hidden', user.role !== 'student');
+  document.getElementById('nav-admin').classList.toggle('hidden', user.role !== 'admin');
+  if (user.role === 'admin') navigate('admin-dashboard');
+  else navigate('dashboard');
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────
+function navigate(page, navEl) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+  else {
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+page+"'")) n.classList.add('active');
+    });
+  }
+  const titles = {
+    'dashboard':'Дашборд','my-courses':'Мои курсы','progress':'Прогресс','lesson':'Урок',
+    'admin-dashboard':'Дашборд','admin-courses':'Управление курсами','admin-users':'Ученики'
+  };
+  document.getElementById('topbar-title').textContent = titles[page] || page;
+  const content = document.getElementById('page-content');
+  content.innerHTML = '';
+  document.getElementById('topbar-actions').innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'page-inner page-fade';
+  content.appendChild(wrap);
+  const renderers = {
+    'dashboard': renderDashboard, 'my-courses': renderMyCourses, 'progress': renderProgress,
+    'lesson': renderLesson, 'admin-dashboard': renderAdminDashboard,
+    'admin-courses': renderAdminCourses, 'admin-users': renderAdminUsers
+  };
+  if (renderers[page]) renderers[page](wrap);
+}
+
+// ─── STUDENT PAGES ────────────────────────────────────────────────────
+function renderDashboard(el) {
+  const user = currentUser;
+  const myCourses = COURSES.filter(c => user.courses.includes(c.id));
+  el.innerHTML = `
+    <div style="margin-bottom:28px">
+      <h2 style="font-family:'Instrument Serif',serif;font-size:26px;margin-bottom:4px">Привет, ${user.name.split(' ')[0]} 👋</h2>
+      <p style="color:var(--text2);font-size:14px">Продолжай создавать — ты на пути к профессии</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Курсов</div><div class="stat-value">${myCourses.length}</div><div class="stat-change">активных</div></div>
+      <div class="stat-card"><div class="stat-label">Уроков пройдено</div><div class="stat-value">12</div><div class="stat-change">из 26</div></div>
+      <div class="stat-card"><div class="stat-label">Средний прогресс</div><div class="stat-value">48%</div><div class="stat-change">↑ растёт</div></div>
+      <div class="stat-card"><div class="stat-label">Дней подряд</div><div class="stat-value">7</div><div class="stat-change">🔥 серия</div></div>
+    </div>
+    <div class="section-header">
+      <div class="section-title">Продолжить обучение</div>
+    </div>
+    <div class="courses-grid">
+      ${myCourses.map(c => courseCard(c, user.progress[c.id] || 0)).join('')}
+    </div>`;
+}
+
+function courseCard(c, progress) {
+  return `<div class="course-card" onclick="openCourse(${c.id})">
+    <div class="course-thumb ${c.thumb}">${c.emoji}</div>
+    <div class="course-body">
+      <div class="course-title">${c.title}</div>
+      <div class="course-meta">${c.lessons} уроков · ${c.category}</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${progress}%"></div></div>
+      <div class="progress-label">${progress}% пройдено</div>
+    </div>
+  </div>`;
+}
+
+function renderMyCourses(el) {
+  const user = currentUser;
+  const myCourses = COURSES.filter(c => user.courses.includes(c.id));
+  el.innerHTML = `
+    <div class="section-header" style="margin-bottom:24px">
+      <div class="section-title">Мои курсы</div>
+      <span class="badge badge-green">${myCourses.length} активных</span>
+    </div>
+    <div class="courses-grid">${myCourses.map(c => courseCard(c, user.progress[c.id] || 0)).join('')}</div>`;
+}
+
+function renderProgress(el) {
+  const user = currentUser;
+  const myCourses = COURSES.filter(c => user.courses.includes(c.id));
+  el.innerHTML = `
+    <div style="margin-bottom:28px">
+      <div class="section-title" style="margin-bottom:4px">Мой прогресс</div>
+      <p style="color:var(--text2);font-size:14px">Отслеживай своё развитие по каждому курсу</p>
+    </div>
+    <div class="progress-grid">
+      ${myCourses.map(c => {
+        const p = user.progress[c.id] || 0;
+        const done = Math.round(c.lessons * p / 100);
+        return `<div class="progress-item">
+          <div style="font-size:28px;margin-bottom:10px">${c.emoji}</div>
+          <div class="progress-course-name">${c.title}</div>
+          <div class="progress-course-meta">${c.category} · ${c.lessons} уроков</div>
+          <div class="big-progress-bar"><div class="big-progress-fill" style="width:${p}%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:14px">
+            <span>${p}% пройдено</span><span>${done}/${c.lessons} уроков</span>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="openCourse(${c.id})">Продолжить →</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function openCourse(id) {
+  activeCourse = COURSES.find(c => c.id === id);
+  activeLesson = LESSONS.findIndex(l => l.current) || 3;
+  navigate('lesson');
+}
+
+function renderLesson(el) {
+  const c = activeCourse || COURSES[0];
+  el.innerHTML = `
+    <div style="margin-bottom:20px;display:flex;align-items:center;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="navigate('my-courses')">← Назад</button>
+      <span style="color:var(--text3);font-size:13px">/</span>
+      <span style="font-size:13px;color:var(--text2)">${c.title}</span>
+    </div>
+    <div class="lesson-layout">
+      <div>
+        <div class="lesson-video">
+          <div class="play-btn" onclick="this.innerHTML='⏸'">
+            <svg width="22" height="22" fill="white" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <div class="video-duration">${LESSONS[activeLesson].duration}</div>
+        </div>
+        <h1 class="lesson-title">${LESSONS[activeLesson].title}</h1>
+        <div class="lesson-meta">
+          <span>${c.emoji} ${c.title}</span>
+          <span>·</span>
+          <span>Урок ${activeLesson+1} из ${c.lessons}</span>
+          <span>·</span>
+          <span>${LESSONS[activeLesson].duration}</span>
+        </div>
+        <div class="lesson-body">
+          <p>В этом уроке мы разберём ключевые концепции темы «${LESSONS[activeLesson].title}». Материал построен от простого к сложному, с практическими примерами.</p>
+          <p>После просмотра видео рекомендуем выполнить практическое задание и проверить своё понимание с помощью мини-теста в конце урока.</p>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:24px">
+          ${activeLesson > 0 ? `<button class="btn btn-outline" onclick="changeLesson(${activeLesson-1})">← Предыдущий</button>` : ''}
+          ${activeLesson < LESSONS.length-1 ? `<button class="btn btn-primary" onclick="changeLesson(${activeLesson+1})">Следующий урок →</button>` : '<button class="btn btn-primary">🎉 Завершить курс</button>'}
+        </div>
+      </div>
+      <div>
+        <div class="lesson-sidebar-card">
+          <div class="lesson-list-title">Программа курса</div>
+          ${LESSONS.map((l,i) => `
+            <div class="lesson-list-item ${i===activeLesson?'active':''}" onclick="changeLesson(${i})">
+              <div class="lesson-check ${l.done?'done':i===activeLesson?'current':''}">
+                ${l.done ? '✓' : i===activeLesson ? '▶' : ''}
+              </div>
+              <span style="flex:1;line-height:1.3">${l.title}</span>
+              <span class="lesson-num">${l.duration}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function changeLesson(idx) {
+  activeLesson = idx;
+  navigate('lesson');
+}
+
+// ─── ADMIN PAGES ──────────────────────────────────────────────────────
+function renderAdminDashboard(el) {
+  el.innerHTML = `
+    <div style="margin-bottom:28px">
+      <h2 style="font-family:'Instrument Serif',serif;font-size:26px;margin-bottom:4px">Обзор платформы</h2>
+      <p style="color:var(--text2);font-size:14px">Активность платформы за последние 30 дней</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Учеников</div><div class="stat-value">1 683</div><div class="stat-change">↑ +124 за месяц</div></div>
+      <div class="stat-card"><div class="stat-label">Активных курсов</div><div class="stat-value">12</div><div class="stat-change">4 в черновике</div></div>
+      <div class="stat-card"><div class="stat-label">Уроков пройдено</div><div class="stat-value">8 452</div><div class="stat-change">↑ +18%</div></div>
+      <div class="stat-card"><div class="stat-label">Средний прогресс</div><div class="stat-value">54%</div><div class="stat-change">↑ хорошо</div></div>
+    </div>
+    <div class="section-header">
+      <div class="section-title">Последние регистрации</div>
+      <button class="btn btn-outline btn-sm" onclick="navigate('admin-users')">Все ученики →</button>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Ученик</th><th>Email</th><th>Курсов</th><th>Прогресс</th><th>Дата</th></tr></thead>
+        <tbody>
+          ${STUDENTS.slice(0,4).map(s=>`
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar avatar-sm" style="background:var(--accent)">${s.name[0]}</div>
+                <span style="font-weight:500">${s.name}</span>
+              </div></td>
+              <td style="color:var(--text2)">${s.email}</td>
+              <td>${s.courses}</td>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div style="width:80px;height:4px;background:var(--surface2);border-radius:2px">
+                  <div style="width:${s.progress}%;height:100%;background:var(--accent);border-radius:2px"></div>
+                </div>
+                <span style="font-size:12px;color:var(--text2)">${s.progress}%</span>
+              </div></td>
+              <td style="color:var(--text3);font-size:13px">${s.joined}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderAdminCourses(el) {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddCourseModal()">+ Добавить курс</button>`;
+  el.innerHTML = `
+    <div style="margin-bottom:24px">
+      <div class="tabs">
+        <button class="tab active" onclick="tabActive(this)">Все курсы</button>
+        <button class="tab" onclick="tabActive(this)">Опубликованные</button>
+        <button class="tab" onclick="tabActive(this)">Черновики</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Курс</th><th>Категория</th><th>Уроков</th><th>Учеников</th><th>Статус</th><th>Действия</th></tr></thead>
+        <tbody>
+          ${COURSES.map(c=>`
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:22px">${c.emoji}</span>
+                <span style="font-weight:500">${c.title}</span>
+              </div></td>
+              <td style="color:var(--text2)">${c.category}</td>
+              <td>${c.lessons}</td>
+              <td>${c.students}</td>
+              <td><span class="badge ${c.published?'badge-green':'badge-gray'}">${c.published?'Опубликован':'Черновик'}</span></td>
+              <td><div style="display:flex;gap:6px">
+                <button class="btn btn-outline btn-sm" onclick="showToast('✏️ Открыт редактор курса')">Изменить</button>
+                <button class="btn btn-ghost btn-sm" style="color:var(--text3)" onclick="showToast('🗑 Курс удалён')">✕</button>
+              </div></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderAdminUsers(el) {
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="showToast('📧 Приглашение отправлено')">+ Пригласить</button>`;
+  el.innerHTML = `
+    <div style="margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <input class="form-input" style="max-width:260px" placeholder="🔍 Поиск по имени...">
+      <span class="badge badge-gray">${STUDENTS.length} учеников</span>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Ученик</th><th>Email</th><th>Курсов</th><th>Средний прогресс</th><th>Регистрация</th><th></th></tr></thead>
+        <tbody>
+          ${STUDENTS.map(s=>`
+            <tr>
+              <td><div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar avatar-sm">${s.name[0]}</div>
+                <span style="font-weight:500">${s.name}</span>
+              </div></td>
+              <td style="color:var(--text2)">${s.email}</td>
+              <td>${s.courses}</td>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div style="width:100px;height:4px;background:var(--surface2);border-radius:2px">
+                  <div style="width:${s.progress}%;height:100%;background:var(--accent);border-radius:2px"></div>
+                </div>
+                <span style="font-size:12px;color:var(--text2)">${s.progress}%</span>
+              </div></td>
+              <td style="color:var(--text3);font-size:13px">${s.joined}</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="showToast('📋 Профиль ученика')">Открыть</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────
+function openAddCourseModal() {
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">Новый курс</div>
+    <div class="form-group">
+      <label class="form-label">Название курса</label>
+      <input class="form-input" placeholder="Например: Основы JavaScript">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Категория</label>
+      <select class="form-input">
+        <option>Программирование</option><option>Дизайн</option>
+        <option>Маркетинг</option><option>Языки</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Описание</label>
+      <textarea class="form-input" rows="3" placeholder="Краткое описание курса..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveNewCourse()">Создать курс</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function saveNewCourse() {
+  closeModal();
+  showToast('✅ Курс создан и добавлен в черновики');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────
+function tabActive(btn) {
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 2800);
+}
+</script>
+</body>
+</html>

@@ -365,7 +365,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Пароль</label>
-          <input class="form-input" type="password" id="login-pass" placeholder="••••••••" value="password">
+          <input class="form-input" type="password" id="login-pass" placeholder="••••••••" >
         </div>
         <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px" onclick="doLogin()">Войти</button>
         <p class="form-footer" style="margin-top:20px">Нет аккаунта? <a onclick="toggleAuthView('register')">Зарегистрироваться</a></p>
@@ -469,7 +469,13 @@
 <!-- TOAST -->
 <div class="toast hidden" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ─── SUPABASE ────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://foshoyhimkilovobysaw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_zgOJwk8q6TIPa2A_0yzCfw_ezHzK635';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ─── STATE ───────────────────────────────────────────────────────────
 let currentRole = 'student';
 let currentUser = null;
@@ -479,7 +485,7 @@ let activeLesson = 0;
 
 const USERS = [
   { id:1, name:'Анна Иванова', email:'student@rubis.pro', role:'student', avatar:'А', courses:[0,1,2], progress:{0:65,1:30,2:0} },
-  { id:2, name:'Алексей Смирнов', email:'admin@rubis.pro', role:'admin', avatar:'А' },
+  { id:2, name:'Алексей Смирнов', email:'kettsal.pov@yandex.ru', role:'admin', avatar:'А' },
 ];
 
 const COURSES = [
@@ -515,7 +521,7 @@ function setRole(role, btn) {
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const emailInput = document.getElementById('login-email');
-  emailInput.value = role === 'admin' ? 'admin@rubis.pro' : 'student@rubis.pro';
+  emailInput.value = role === 'admin' ? 'kettsal.pov@yandex.ru' : 'student@rubis.pro';
 }
 
 function toggleAuthView(view) {
@@ -523,12 +529,46 @@ function toggleAuthView(view) {
   document.getElementById('auth-register-view').classList.toggle('hidden', view !== 'register');
 }
 
-function doLogin() {
-  const email = document.getElementById('login-email').value;
-  const user = USERS.find(u => u.email === email);
-  if (!user) { showToast('❌ Пользователь не найден'); return; }
-  currentUser = user;
-  launchApp(user);
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { showToast('❌ Заполни email и пароль'); return; }
+
+  const loginBtn = document.querySelector('#auth-login-view .btn-primary');
+  loginBtn.textContent = 'Входим...';
+  loginBtn.disabled = true;
+
+  try {
+    // Check admin in Supabase
+    const { data, error } = await sb
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('password_hash', pass)
+      .single();
+
+    if (data) {
+      currentUser = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        avatar: data.avatar || data.name[0],
+        courses: [0,1,2],
+        progress: {0:65,1:30,2:0}
+      };
+      launchApp(currentUser);
+      return;
+    }
+  } catch(e) {}
+
+  // Fallback: check local student accounts
+  const user = USERS.find(u => u.email === email && u.role === 'student');
+  if (user) { currentUser = user; launchApp(user); return; }
+
+  showToast('❌ Неверный email или пароль');
+  loginBtn.textContent = 'Войти';
+  loginBtn.disabled = false;
 }
 
 function doRegister() {
@@ -792,38 +832,148 @@ function renderAdminCourses(el) {
     </div>`;
 }
 
+function openAddStudentModal() {
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">Добавить ученика</div>
+    <div class="form-group">
+      <label class="form-label">Имя и фамилия</label>
+      <input class="form-input" id="new-student-name" placeholder="Иван Петров">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="new-student-email" type="email" placeholder="ivan@mail.ru">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Курс</label>
+      <select class="form-input" id="new-student-course">
+        ${COURSES.map(c => `<option value="${c.id}">${c.emoji} ${c.title}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveNewStudent()">Добавить ученика</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function saveNewStudent() {
+  const name = document.getElementById('new-student-name').value.trim();
+  const email = document.getElementById('new-student-email').value.trim();
+  if (!name || !email) { showToast('❌ Заполни имя и email'); return; }
+  const today = new Date();
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const joined = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+  const newStudent = {
+    id: STUDENTS.length + 1,
+    name, email, courses: 1, progress: 0, joined
+  };
+  STUDENTS.push(newStudent);
+  closeModal();
+  showToast(`✅ Ученик ${name} добавлен`);
+  navigate('admin-users');
+}
+
+function confirmDeleteStudent(id) {
+  const student = STUDENTS.find(s => s.id === id);
+  if (!student) return;
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">Удалить ученика?</div>
+    <div style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:20px">
+      <div class="avatar" style="background:var(--accent2)">${student.name[0]}</div>
+      <div>
+        <div style="font-weight:600;font-size:15px">${student.name}</div>
+        <div style="font-size:13px;color:var(--text2)">${student.email}</div>
+      </div>
+    </div>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:4px">Это действие нельзя отменить. Ученик потеряет доступ ко всем курсам.</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-danger" onclick="deleteStudent(${id})">Да, удалить</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+const DELETED_STUDENTS = [];
+
+function deleteStudent(id) {
+  const idx = STUDENTS.findIndex(s => s.id === id);
+  if (idx !== -1) {
+    const student = STUDENTS[idx];
+    const today = new Date();
+    const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    student.deletedAt = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+    DELETED_STUDENTS.push(student);
+    STUDENTS.splice(idx, 1);
+    closeModal();
+    showToast(`🗑 ${student.name} перемещён в удалённые`);
+    navigate('admin-users');
+  }
+}
+
+function restoreStudent(id) {
+  const idx = DELETED_STUDENTS.findIndex(s => s.id === id);
+  if (idx !== -1) {
+    const student = DELETED_STUDENTS[idx];
+    delete student.deletedAt;
+    STUDENTS.push(student);
+    DELETED_STUDENTS.splice(idx, 1);
+    showToast(`✅ ${student.name} восстановлен`);
+    navigate('admin-users');
+  }
+}
+
+function studentRow(s, deleted) {
+  return `<tr style="${deleted ? 'opacity:0.55' : ''}">
+    <td><div style="display:flex;align-items:center;gap:10px">
+      <div class="avatar avatar-sm" style="${deleted ? 'background:var(--text3)' : ''}">${s.name[0]}</div>
+      <div>
+        <span style="font-weight:500;${deleted ? 'text-decoration:line-through;color:var(--text2)' : ''}">${s.name}</span>
+        ${deleted ? `<div style="font-size:11px;color:var(--text3)">Удалён ${s.deletedAt}</div>` : ''}
+      </div>
+    </div></td>
+    <td style="color:var(--text2)">${s.email}</td>
+    <td>${deleted ? '—' : s.courses}</td>
+    <td>${deleted ? '<span style="color:var(--text3);font-size:13px">—</span>' : `<div style="display:flex;align-items:center;gap:8px"><div style="width:100px;height:4px;background:var(--surface2);border-radius:2px"><div style="width:${s.progress}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:12px;color:var(--text2)">${s.progress}%</span></div>`}</td>
+    <td style="color:var(--text3);font-size:13px">${s.joined}</td>
+    <td><div style="display:flex;gap:6px">
+      ${deleted
+        ? `<button class="btn btn-outline btn-sm" onclick="restoreStudent(${s.id})">Восстановить</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="showToast('📋 Профиль ученика')">Открыть</button><button class="btn btn-ghost btn-sm" style="color:#dc2626" onclick="confirmDeleteStudent(${s.id})">✕</button>`
+      }
+    </div></td>
+  </tr>`;
+}
+
 function renderAdminUsers(el) {
-  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="showToast('📧 Приглашение отправлено')">+ Пригласить</button>`;
+  document.getElementById('topbar-actions').innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddStudentModal()">+ Добавить ученика</button>`;
+  const deletedSection = DELETED_STUDENTS.length > 0 ? `
+    <div class="section-header" style="margin-bottom:14px;margin-top:32px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'Instrument Serif',serif;font-size:20px">Удалённые</span>
+        <span class="badge badge-orange">${DELETED_STUDENTS.length}</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Ученик</th><th>Email</th><th>Курсов</th><th>Прогресс</th><th>Дата регистрации</th><th></th></tr></thead>
+        <tbody>${DELETED_STUDENTS.map(s => studentRow(s, true)).join('')}</tbody>
+      </table>
+    </div>` : '';
   el.innerHTML = `
     <div style="margin-bottom:20px;display:flex;align-items:center;gap:12px">
-      <input class="form-input" style="max-width:260px" placeholder="🔍 Поиск по имени...">
-      <span class="badge badge-gray">${STUDENTS.length} учеников</span>
+      <input class="form-input" style="max-width:260px" placeholder="🔍 Поиск по имени..." oninput="filterStudents(this.value)">
+      <span class="badge badge-gray" id="students-count">${STUDENTS.length} учеников</span>
     </div>
     <div class="table-wrap">
       <table class="admin-table">
         <thead><tr><th>Ученик</th><th>Email</th><th>Курсов</th><th>Средний прогресс</th><th>Регистрация</th><th></th></tr></thead>
-        <tbody>
-          ${STUDENTS.map(s=>`
-            <tr>
-              <td><div style="display:flex;align-items:center;gap:10px">
-                <div class="avatar avatar-sm">${s.name[0]}</div>
-                <span style="font-weight:500">${s.name}</span>
-              </div></td>
-              <td style="color:var(--text2)">${s.email}</td>
-              <td>${s.courses}</td>
-              <td><div style="display:flex;align-items:center;gap:8px">
-                <div style="width:100px;height:4px;background:var(--surface2);border-radius:2px">
-                  <div style="width:${s.progress}%;height:100%;background:var(--accent);border-radius:2px"></div>
-                </div>
-                <span style="font-size:12px;color:var(--text2)">${s.progress}%</span>
-              </div></td>
-              <td style="color:var(--text3);font-size:13px">${s.joined}</td>
-              <td><button class="btn btn-ghost btn-sm" onclick="showToast('📋 Профиль ученика')">Открыть</button></td>
-            </tr>`).join('')}
-        </tbody>
+        <tbody>${STUDENTS.map(s => studentRow(s, false)).join('')}</tbody>
       </table>
-    </div>`;
+    </div>
+    ${deletedSection}`;
 }
+
+
 
 // ─── MODAL ────────────────────────────────────────────────────────────
 function openAddCourseModal() {
@@ -865,6 +1015,20 @@ function closeModalOnOverlay(e) {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────
+function filterStudents(query) {
+  const rows = document.querySelectorAll('.admin-table tbody tr');
+  let visible = 0;
+  rows.forEach(row => {
+    const name = row.querySelector('span[style*="font-weight"]')?.textContent?.toLowerCase() || '';
+    const email = row.querySelectorAll('td')[1]?.textContent?.toLowerCase() || '';
+    const match = name.includes(query.toLowerCase()) || email.includes(query.toLowerCase());
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  const counter = document.getElementById('students-count');
+  if (counter) counter.textContent = `${visible} учеников`;
+}
+
 function tabActive(btn) {
   btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
